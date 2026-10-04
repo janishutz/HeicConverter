@@ -10,6 +10,7 @@ else
 		outdir=$1
 	fi
 fi
+export HOME=/root
 
 wine C:/Python/python.exe -m PyInstaller -F heicConverter.py
 wine C:/Python/python.exe -m PyInstaller -F heicConverterGui.py
