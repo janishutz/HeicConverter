@@ -57,7 +57,7 @@ def get_file_list(dir_of_interest: str, recursive: bool) -> List[List[str]]:
             if not recursive:
                 dirs.clear()
             for file in files:
-                if fnmatch.fnmatch(file.lower(), '*.heic'):
+                if fnmatch.fnmatch(file.lower(), "*.heic"):
                     file_list.append([os.path.normpath(root), file])
         return file_list
     else:
@@ -66,13 +66,13 @@ def get_file_list(dir_of_interest: str, recursive: bool) -> List[List[str]]:
 
 
 def convert_heic_file(
-        source_file: str,
-        target_file: str,
-        overwrite: bool,
-        remove: bool,
-        quality: int,
-        progress_callback: Optional[Callable[[str], None]] = None,
-        verbose: bool = False
+    source_file: str,
+    target_file: str,
+    overwrite: bool,
+    remove: bool,
+    quality: int,
+    progress_callback: Optional[Callable[[str], None]] = None,
+    verbose: bool = False,
 ) -> bool:
     """
     Convert a single heic file to jpeg
@@ -92,7 +92,7 @@ def convert_heic_file(
             print(f"Source file {source_file} does not exist")
         return False
 
-    if not source_file.lower().endswith('.heic'):
+    if not source_file.lower().endswith(".heic"):
         if verbose:
             print(f"Source file {source_file} is not a HEIC file")
         return False
@@ -108,12 +108,12 @@ def convert_heic_file(
     target_folder = os.path.dirname(target_file)
     if not os.path.exists(target_folder):
         if verbose:
-            print(f'Creating folder {target_folder}')
+            print(f"Creating folder {target_folder}")
         os.makedirs(target_folder)
 
     if os.path.exists(target_file) and not overwrite:
         if verbose:
-            print(f'File {target_file} already exists, skip')
+            print(f"File {target_file} already exists, skip")
         return False
 
     try:
@@ -124,9 +124,13 @@ def convert_heic_file(
 
         if image_exif:
             # Make a map with tag names and grab the datetime
-            exif = {ExifTags.TAGS[k]: v for k, v in image_exif.items() if k in ExifTags.TAGS and type(v) is not bytes}
-            if 'DateTime' in exif:
-                date = datetime.strptime(exif['DateTime'], '%Y:%m:%d %H:%M:%S')
+            exif = {
+                ExifTags.TAGS[k]: v
+                for k, v in image_exif.items()
+                if k in ExifTags.TAGS and type(v) is not bytes
+            }
+            if "DateTime" in exif:
+                date = datetime.strptime(exif["DateTime"], "%Y:%m:%d %H:%M:%S")
             else:
                 date = datetime.now()
 
@@ -141,7 +145,7 @@ def convert_heic_file(
             # No EXIF data exists, use current datetime
             date = datetime.now()
             if verbose:
-                print(f'No EXIF data found for {source_file}, creating dummy EXIF data')
+                print(f"No EXIF data found for {source_file}, creating dummy EXIF data")
 
         # Update exif data with orientation and datetime
         exif_dict["0th"][piexif.ImageIFD.DateTime] = date.strftime("%Y:%m:%d %H:%M:%S")
@@ -159,11 +163,11 @@ def convert_heic_file(
         # Save image as jpeg
         image.save(target_file, "jpeg", exif=exif_bytes, quality=quality)
         if verbose:
-            print(f'Converted image: {source_file} -> {target_file}')
+            print(f"Converted image: {source_file} -> {target_file}")
         if remove:
             os.remove(source_file)
             if verbose:
-                print(f'Removed original: {source_file}')
+                print(f"Removed original: {source_file}")
 
         # Report success if callback provided
         if progress_callback:
@@ -184,18 +188,18 @@ def convert_heic_file(
 
 
 def convert_multiple_heic_files(
-        file_list: List[str],
-        overwrite: bool,
-        remove: bool,
-        quality: int,
-        target: str,
-        progress_callback: Optional[Callable[[str], None]] = None,
-        generate_unique: bool = False,
-        verbose: bool = False
+    file_list: List[str],
+    overwrite: bool,
+    remove: bool,
+    quality: int,
+    target: str,
+    progress_callback: Optional[Callable[[str], None]] = None,
+    generate_unique: bool = False,
+    verbose: bool = False,
 ) -> List[str]:
     """
     Convert a list of HEIC files to JPEG
-    
+
     :param file_list: List of HEIC file paths
     :param overwrite: Overwrite existing JPEG files
     :param remove: Remove converted HEIC files
@@ -204,37 +208,37 @@ def convert_multiple_heic_files(
     :param progress_callback: Optional callback for progress updates
     :param generate_unique: Generate unique filenames when target exists
     :param verbose: Enable more detailed output
-    
+
     :return: List of successfully converted files
     """
     success_files = []
 
     if verbose:
-        print(f'Processing {len(file_list)} files')
+        print(f"Processing {len(file_list)} files")
 
     for source_file in file_list:
-        if not os.path.isfile(source_file) or not source_file.lower().endswith('.heic'):
+        if not os.path.isfile(source_file) or not source_file.lower().endswith(".heic"):
             if verbose:
-                print(f'Skipping invalid file: {source_file}')
+                print(f"Skipping invalid file: {source_file}")
             continue
 
-        target_filename = os.path.basename(source_file).split('.')[0] + ".jpg"
+        target_filename = os.path.basename(source_file).split(".")[0] + ".jpg"
         target_file = os.path.join(target, target_filename)
 
         # Generate unique filename if requested and not overwriting
         if generate_unique and not overwrite and os.path.exists(target_file):
             target_file = generate_unique_filename(target_file)
             if verbose:
-                print(f'Generated unique name: {os.path.basename(target_file)}')
+                print(f"Generated unique name: {os.path.basename(target_file)}")
 
         if convert_heic_file(
-                source_file,
-                target_file,
-                overwrite,
-                remove,
-                quality,
-                progress_callback,
-                verbose
+            source_file,
+            target_file,
+            overwrite,
+            remove,
+            quality,
+            progress_callback,
+            verbose,
         ):
             success_files.append(os.path.basename(target_file))
 
@@ -242,16 +246,16 @@ def convert_multiple_heic_files(
 
 
 def convert_heic_to_jpeg(
-        dir_of_interest: str,
-        recursive: bool,
-        overwrite: bool,
-        remove: bool,
-        quality: int,
-        target: str,
-        preserve_folder_structure: bool = True,
-        progress_callback: Optional[Callable[[str], None]] = None,
-        generate_unique: bool = False,
-        verbose: bool = False,
+    dir_of_interest: str,
+    recursive: bool,
+    overwrite: bool,
+    remove: bool,
+    quality: int,
+    target: str,
+    preserve_folder_structure: bool = True,
+    progress_callback: Optional[Callable[[str], None]] = None,
+    generate_unique: bool = False,
+    verbose: bool = False,
 ) -> List[str]:
     """
     Convert all heic files in the directory of interest to jpeg
@@ -265,7 +269,7 @@ def convert_heic_to_jpeg(
     :param progress_callback: Optional callback for progress updates
     :param generate_unique: Generate unique filenames when target exists
     :param verbose: Enable more detailed output
-    
+
     :return: a list of successfully converted files
     """
     heic_files = get_file_list(dir_of_interest, recursive)
@@ -274,20 +278,22 @@ def convert_heic_to_jpeg(
     success_files = []
 
     if verbose:
-        print(f'Found {len(heic_files)} files to convert in folder {dir_of_interest}')
+        print(f"Found {len(heic_files)} files to convert in folder {dir_of_interest}")
 
     # Convert files to jpg while keeping the timestamp
     for root, filename in tqdm(heic_files):
 
-        dir_prefix = ''
+        dir_prefix = ""
         if preserve_folder_structure:
             dir_prefix = os.path.relpath(root, dir_of_interest)
-            if dir_prefix != '.':
+            if dir_prefix != ".":
                 os.makedirs(os.path.join(target, dir_prefix), exist_ok=True)
             else:
-                dir_prefix = ''
+                dir_prefix = ""
 
-        target_filename = os.path.join(dir_prefix, os.path.splitext(filename)[0] + ".jpg")
+        target_filename = os.path.join(
+            dir_prefix, os.path.splitext(filename)[0] + ".jpg"
+        )
         target_file = os.path.join(target, target_filename)
         source_file = os.path.join(root, filename)
 
@@ -295,9 +301,17 @@ def convert_heic_to_jpeg(
         if generate_unique and not overwrite and os.path.exists(target_file):
             target_file = generate_unique_filename(target_file)
             if verbose:
-                print(f'Generated unique name: {os.path.basename(target_file)}')
+                print(f"Generated unique name: {os.path.basename(target_file)}")
 
-        if convert_heic_file(source_file, target_file, overwrite, remove, quality, progress_callback, verbose):
+        if convert_heic_file(
+            source_file,
+            target_file,
+            overwrite,
+            remove,
+            quality,
+            progress_callback,
+            verbose,
+        ):
             success_files.append(os.path.basename(target_file))
 
     return success_files
