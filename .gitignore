@@ -1,5 +1,5 @@
-dist
-build
+./dist
+./build
 *.spec
 .idea
 tests
