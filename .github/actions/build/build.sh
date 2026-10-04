@@ -12,6 +12,8 @@ else
 fi
 export HOME=/root
 
+wine C:/Python/python.exe -m pip install -r requirements.txt
+wine C:/Python/python.exe -m pip install tqdm
 wine C:/Python/python.exe -m PyInstaller -F heicConverter.py
 wine C:/Python/python.exe -m PyInstaller -F heicConverterGui.py
 
