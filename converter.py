@@ -1,3 +1,5 @@
+from functools import reduce
+from operator import add
 import os
 import re
 from PIL import Image, ExifTags, UnidentifiedImageError
@@ -5,8 +7,10 @@ from pillow_heif import register_heif_opener
 from datetime import datetime
 import piexif
 import fnmatch
-from typing import List, Callable, Optional, Union, Tuple
+from typing import Callable, List, Optional
 from tqdm.auto import tqdm
+from itertools import repeat
+import multiprocessing as mp
 
 register_heif_opener(allow_incorrect_headers=True)
 
@@ -274,15 +278,107 @@ def convert_heic_to_jpeg(
     """
     heic_files = get_file_list(dir_of_interest, recursive)
 
-    # Extract files of interest
-    success_files = []
-
     if verbose:
         print(f"Found {len(heic_files)} files to convert in folder {dir_of_interest}")
 
     # Convert files to jpg while keeping the timestamp
-    for root, filename in tqdm(heic_files):
+    work = split_work(heic_files)
+    if len(work) == 1:
+        results = _run_conversion(
+            work[0],
+            dir_of_interest,
+            overwrite,
+            remove,
+            quality,
+            target,
+            preserve_folder_structure,
+            progress_callback,
+            generate_unique,
+            verbose,
+        )
+    else:
+        with mp.Pool() as p:
+            m = mp.Manager()
+            queue = m.Queue()
 
+            tasks = zip(
+                work,
+                repeat(dir_of_interest),
+                repeat(overwrite),
+                repeat(remove),
+                repeat(quality),
+                repeat(target),
+                repeat(preserve_folder_structure),
+                repeat(queue),
+                repeat(generate_unique),
+                repeat(verbose),
+            )
+            res = p.starmap_async(_run_mp_wrapper, tasks)
+            # iterator
+            if progress_callback != None:
+                while not res.ready():
+                    try:
+                        val = queue.get(True, 0.25)
+                        progress_callback(str(val))
+                    except:
+                        pass
+                res.wait()
+            else:
+                res.wait()
+
+            results = res.get()
+
+    return reduce(add, results)
+
+
+def _run_mp_wrapper(
+    heic_files: List[List[str]],
+    dir_of_interest: str,
+    overwrite: bool,
+    remove: bool,
+    quality: int,
+    target: str,
+    preserve_folder_structure: bool = True,
+    queue: mp.Queue | None = None,
+    generate_unique: bool = False,
+    verbose: bool = False,
+):
+    if queue != None:
+        def cb_wrapper(msg: str):
+            queue.put(msg)
+    else:
+        def cb_wrapper(msg: str):
+            print(msg)
+
+    return _run_conversion(
+        heic_files,
+        dir_of_interest,
+        overwrite,
+        remove,
+        quality,
+        target,
+        preserve_folder_structure,
+        cb_wrapper,
+        generate_unique,
+        verbose,
+    )
+
+
+def _run_conversion(
+    heic_files: List[List[str]],
+    dir_of_interest: str,
+    overwrite: bool,
+    remove: bool,
+    quality: int,
+    target: str,
+    preserve_folder_structure: bool = True,
+    progress_callback: Optional[Callable[[str], None]] = None,
+    generate_unique: bool = False,
+    verbose: bool = False,
+):
+    success_files = []
+
+    for root, filename in tqdm(heic_files):
         dir_prefix = ""
         if preserve_folder_structure:
             dir_prefix = os.path.relpath(root, dir_of_interest)
@@ -302,7 +398,6 @@ def convert_heic_to_jpeg(
             target_file = generate_unique_filename(target_file)
             if verbose:
                 print(f"Generated unique name: {os.path.basename(target_file)}")
-
         if convert_heic_file(
             source_file,
             target_file,
@@ -313,5 +408,27 @@ def convert_heic_to_jpeg(
             verbose,
         ):
             success_files.append(os.path.basename(target_file))
-
     return success_files
+
+
+def split_work(
+    files: List[List[str]],
+    workers: int = -1,
+) -> List[List[List[str]]]:
+    if workers == -1:
+        workers = mp.cpu_count() // 2
+    if len(files) < workers:
+        workers = 1
+        work_per_thread = 0
+    else:
+        workers = min(mp.cpu_count(), workers)
+        work_per_thread = len(files) // (workers - 1)
+
+    work: List[List[List[str]]] = []
+
+    for worker in range(workers - 1):
+        work.append(files[worker * work_per_thread : (worker + 1) * work_per_thread])
+
+    work.append(files[(workers - 1) * work_per_thread :])
+
+    return work
