@@ -1,0 +1,36 @@
+name: Draft a new release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The Tag to create for this release
+        type: string
+        required: true
+      name:
+        description: The name of the release (OPTIONAL)
+        type: string
+        required: false
+jobs:
+  draft_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v6
+      - name: Build the release
+        uses: ./.github/actions/build
+        with:
+          out: /github/workspace
+      - name: Draft release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "heicConverter.exe,heicConverterGui.exe"
+          body: "# heicConverter ${{ inputs.tag }}\n\nTODO: Explain the major features and changes here"
+          draft: true
+          generateReleaseNotes: true
+          artifactErrorsFailBuild: true
+          replacesArtifacts: true
+          updateOnlyUnreleased: true
+          tag: ${{ inputs.tag }}
+          name: ${{ inputs.name }}
