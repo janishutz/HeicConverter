@@ -15,4 +15,5 @@ export HOME=/root
 wine C:/Python/python.exe -m PyInstaller -F heicConverter.py
 wine C:/Python/python.exe -m PyInstaller -F heicConverterGui.py
 
-ls -la
+cp ./dist/heicConverter.exe $outdir
+cp ./dist/heicConverterGui.exe $outdir
