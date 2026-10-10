@@ -25,7 +25,7 @@ jobs:
       - name: Draft release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "heicConverter.exe,heicConverterGui.exe"
+          artifacts: "heicConverter.zip,heicConverterGui.zip"
           body: "# heicConverter ${{ inputs.tag }}\n\nTODO: Explain the major features and changes here"
           draft: true
           generateReleaseNotes: true
